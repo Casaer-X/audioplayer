@@ -1,0 +1,71 @@
+#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <fstream>
+
+// 简单的无损压缩结构
+struct CompressedAudio {
+    int32_t first_sample; // 第一个采样点（基准）
+    std::vector<int8_t> residuals; // 存储残差（差值）
+};
+
+// 压缩函数：将原始 PCM 16bit 数据转换为残差
+CompressedAudio compress(const std::vector<int16_t>& input) {
+    CompressedAudio output;
+    if (input.empty()) return output;
+
+    output.first_sample = input[0];
+    for (size_t i = 1; i < input.size(); ++i) {
+        // 计算当前采样与上一个采样的差值（预测残差）
+        int32_t diff = input[i] - input[i - 1];
+        
+        // 简单处理：如果差值在 int8 范围内则直接存，否则在此 Demo 中会溢出
+        // 真实的算法（如FLAC）会使用 Rice Coding 处理任意长度的差值
+        output.residuals.push_back(static_cast<int8_t>(diff));
+    }
+    return output;
+}
+
+// 解压函数：从残差恢复 PCM
+std::vector<int16_t> decompress(const CompressedAudio& compressed) {
+    std::vector<int16_t> output;
+    output.push_back(static_cast<int16_t>(compressed.first_sample));
+
+    for (size_t i = 0; i < compressed.residuals.size(); ++i) {
+        // 还原：当前值 = 上一个值 + 残差
+        int16_t next_sample = output.back() + compressed.residuals[i];
+        output.push_back(next_sample);
+    }
+    return output;
+}
+
+int main() {
+    // 1. 模拟一段原始音频数据（16-bit PCM）
+    // 实际音频波形通常是平滑变化的：100, 102, 105...
+    std::vector<int16_t> original_pcm = {1000, 1005, 1012, 1010, 1008, 995, 990};
+
+    std::cout << "原始采样数据: ";
+    for (auto s : original_pcm) std::cout << s << " ";
+    std::cout << "\n------------------\n";
+
+    // 2. 执行压缩
+    CompressedAudio compressed = compress(original_pcm);
+
+    // 3. 计算压缩率（近似）
+    size_t original_size = original_pcm.size() * sizeof(int16_t);
+    size_t compressed_size = sizeof(int32_t) + compressed.residuals.size() * sizeof(int8_t);
+    std::cout << "原始大小: " << original_size << " bytes\n";
+    std::cout << "压缩后大小: " << compressed_size << " bytes\n";
+    std::cout << "残差数据 (需进一步熵编码): ";
+    for (int r : compressed.residuals) std::cout << r << " ";
+    std::cout << "\n------------------\n";
+
+    // 4. 执行解压（直接收听原理：边解边放）
+    std::vector<int16_t> recovered_pcm = decompress(compressed);
+
+    std::cout << "还原后的采样数据: ";
+    for (auto s : recovered_pcm) std::cout << s << " ";
+    std::cout << "\n结果判定: " << (original_pcm == recovered_pcm ? "完全无损" : "有损") << std::endl;
+
+    return 0;
+}
