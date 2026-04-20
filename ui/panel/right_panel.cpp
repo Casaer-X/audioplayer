@@ -1,6 +1,7 @@
 #include "right_panel.h"
 #include <QPushButton>
 #include <QSlider>
+#include <QFileInfo>
 
 RightPanel::RightPanel(Player* player, QWidget* parent)
     : QWidget(parent)
@@ -118,6 +119,43 @@ void RightPanel::setupUI() {
 
     nowPlayingLayout->addStretch();
 
+    auto* controlsLayout = new QHBoxLayout();
+    controlsLayout->setSpacing(8);
+
+    auto* prevButton = new QPushButton("⏮");
+    prevButton->setFixedSize(40, 40);
+    prevButton->setToolTip("上一首");
+    prevButton->setStyleSheet(
+        "QPushButton { font-size: 16px; border-radius: 20px; }"
+    );
+    controlsLayout->addWidget(prevButton);
+
+    auto* playPauseButton = new QPushButton("▶");
+    playPauseButton->setFixedSize(50, 50);
+    playPauseButton->setToolTip("播放/暂停");
+    playPauseButton->setStyleSheet(
+        "QPushButton { font-size: 20px; border-radius: 25px; background-color: #007ACC; }"
+        "QPushButton:hover { background-color: #1177BB; }"
+    );
+    controlsLayout->addWidget(playPauseButton);
+
+    auto* nextButton = new QPushButton("⏭");
+    nextButton->setFixedSize(40, 40);
+    nextButton->setToolTip("下一首");
+    nextButton->setStyleSheet(
+        "QPushButton { font-size: 16px; border-radius: 20px; }"
+    );
+    controlsLayout->addWidget(nextButton);
+
+    nowPlayingLayout->addLayout(controlsLayout);
+
+    connect(prevButton, &QPushButton::clicked,
+            this, &RightPanel::onPreviousClicked);
+    connect(playPauseButton, &QPushButton::clicked,
+            this, &RightPanel::onPlayPauseClicked);
+    connect(nextButton, &QPushButton::clicked,
+            this, &RightPanel::onNextClicked);
+
     tabWidget->addTab(nowPlayingPage, "正在播放");
 
     auto* lyricsPage = new QLabel("歌词显示\n功能开发中...");
@@ -134,8 +172,17 @@ void RightPanel::setupUI() {
 
     connect(m_player->engine(), &AudioEngine::currentTrackChanged,
             this, [this](const QString& filepath) {
-        Q_UNUSED(filepath)
-        updateNowPlaying("", "", "");
+        QFileInfo fi(filepath);
+        m_titleLabel->setText(fi.completeBaseName());
+        m_artistLabel->setText(fi.path());
+        m_albumLabel->setText("");
+    });
+
+    connect(m_player, &Player::currentSongChanged,
+            this, [this](const Song& song) {
+        m_titleLabel->setText(song.title().isEmpty() ? song.filepath() : song.title());
+        m_artistLabel->setText(song.artist());
+        m_albumLabel->setText(song.album());
     });
 }
 

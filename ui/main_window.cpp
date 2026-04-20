@@ -1,15 +1,18 @@
 #include "main_window.h"
-#include "ui/sidebar/sidebar.h"
-#include "ui/content/content_area.h"
-#include "ui/panel/right_panel.h"
-#include "ui/statusbar/status_bar.h"
+#include "sidebar/sidebar.h"
+#include "content/content_area.h"
+#include "panel/right_panel.h"
+#include "statusbar/status_bar.h"
+#include "services/file_scanner.h"
 
 #include <QApplication>
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QKeyEvent>
+#include <QShortcut>
 #include <QSettings>
 #include <QDebug>
 
@@ -47,7 +50,7 @@ void MainWindow::setupUI() {
     m_sidebar = new Sidebar(this);
     m_contentArea = new ContentArea(m_player, this);
     m_rightPanel = new RightPanel(m_player, this);
-    m_statusBar = new StatusBar(m_player, this);
+    m_statusBar = new StatusBar(m_player->engine(), this);
 
     m_contentSplitter->addWidget(m_contentArea);
     m_contentSplitter->addWidget(m_rightPanel);
@@ -70,6 +73,40 @@ void MainWindow::setupUI() {
     QList<int> contentSizes;
     contentSizes << (width() - 550) << 300;
     m_contentSplitter->setSizes(contentSizes);
+
+    connect(m_contentArea, &ContentArea::songDoubleClicked,
+            this, [this](const Song& song) {
+        m_player->playSong(song);
+        m_contentArea->setCurrentSong(song);
+    });
+
+    connect(m_statusBar, &StatusBar::previousRequested,
+            m_player, &Player::playPrevious);
+    connect(m_statusBar, &StatusBar::nextRequested,
+            m_player, &Player::playNext);
+
+    connect(m_player, &Player::currentSongChanged,
+            this, [this](const Song& song) {
+        m_contentArea->setCurrentSong(song);
+        QString title = song.title().isEmpty()
+            ? QFileInfo(song.filepath()).completeBaseName()
+            : song.title();
+        m_rightPanel->updateNowPlaying(title, song.artist(), song.album());
+        m_statusBar->updateCurrentTrack(song.filepath());
+    });
+
+    connect(m_sidebar, &Sidebar::libraryRequested,
+            this, [](const QString& category) {
+                qDebug() << "Library category clicked:" << category;
+            });
+    connect(m_sidebar, &Sidebar::playlistRequested,
+            this, [](int index) {
+                qDebug() << "Playlist index clicked:" << index;
+            });
+    connect(m_sidebar, &Sidebar::addPlaylistRequested,
+            this, []() {
+                qDebug() << "Add playlist requested";
+            });
 }
 
 void MainWindow::setupMenuBar() {
@@ -98,11 +135,11 @@ void MainWindow::setupMenuBar() {
 
     auto* playbackMenu = menuBar->addMenu("播放(&P)");
     playbackMenu->addAction("播放/暂停", Qt::Key_Space,
-                            [this]() { if (m_player->engine()->state() == PlaybackState::Playing) 
-                                          m_player->engine()->pause(); 
+                            [this]() { if (m_player->engine()->state() == PlaybackState::Playing)
+                                          m_player->engine()->pause();
                                       else m_player->engine()->play(); });
-    playbackMenu->addAction("上一首", this, &MainWindow::keyPressEvent); // TODO: fix
-    playbackMenu->addAction("下一首", this, &MainWindow::keyPressEvent); // TODO: fix
+    playbackMenu->addAction("上一首", Qt::Key_Left, [this]() { m_player->playPrevious(); });
+    playbackMenu->addAction("下一首", Qt::Key_Right, [this]() { m_player->playNext(); });
 
     auto* helpMenu = menuBar->addMenu("帮助(&H)");
     helpMenu->addAction("设置", Qt::Key_Comma, this, &MainWindow::onSettings);
@@ -286,6 +323,10 @@ void MainWindow::onOpenFolder() {
         m_player->setPlaylist(playlist);
 
         m_contentArea->updateSongList(songs);
+
+        if (!songs.isEmpty()) {
+            m_player->playAt(0);
+        }
     }
 }
 

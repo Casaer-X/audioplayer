@@ -25,6 +25,8 @@ public:
 
     void shufflePlaylist();
     void sortByLiveSort();
+    void setLiveSortEnabled(bool enabled);
+    bool isLiveSortEnabled() const;
 
     AudioEngine* engine() const;
     const Playlist& currentPlaylist() const;
@@ -38,12 +40,14 @@ signals:
 private slots:
     void handleAboutToFinish();
     void handleFinished();
+    void onLoadCompleted(bool success);
 
 private:
     AudioEngine* m_engine;
     Playlist m_playlist;
     QQueue<Song> m_queue;
     int m_currentIndex;
+    bool m_liveSortEnabled;
 
     int getNextIndex();
     int getPreviousIndex();

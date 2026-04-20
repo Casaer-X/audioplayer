@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QListWidget>
+#include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QPushButton>
 
@@ -13,15 +14,17 @@ public:
     explicit Sidebar(QWidget* parent = nullptr);
 
 signals:
-    void libraryRequested();
+    void libraryRequested(const QString& category);
     void playlistRequested(int index);
     void settingsRequested();
     void addPlaylistRequested();
 
 private:
     void setupUI();
+    void onLibraryItemClicked(QTreeWidgetItem* item, int column);
+    void onPlaylistItemClicked(QListWidgetItem* item);
 
-    QListWidget* m_libraryTree;
+    QTreeWidget* m_libraryTree;
     QListWidget* m_playlistList;
     QPushButton* m_addPlaylistButton;
 };

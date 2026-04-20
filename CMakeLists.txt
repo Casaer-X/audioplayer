@@ -29,7 +29,9 @@ add_executable(${PROJECT_NAME}
     src/transition/audio_analyzer.h
     src/transition/audio_analyzer.cpp
     src/models/song.h
+    src/models/song.cpp
     src/models/playlist.h
+    src/models/playlist.cpp
     src/services/file_scanner.h
     src/services/file_scanner.cpp
     ui/main_window.h

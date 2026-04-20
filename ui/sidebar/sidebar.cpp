@@ -96,4 +96,22 @@ void Sidebar::setupUI() {
 
     connect(m_addPlaylistButton, &QPushButton::clicked,
             this, &Sidebar::addPlaylistRequested);
+    connect(m_libraryTree, &QTreeWidget::itemClicked,
+            this, &Sidebar::onLibraryItemClicked);
+    connect(m_playlistList, &QListWidget::itemClicked,
+            this, &Sidebar::onPlaylistItemClicked);
+}
+
+void Sidebar::onLibraryItemClicked(QTreeWidgetItem* item, int column) {
+    Q_UNUSED(column)
+    if (item) {
+        emit libraryRequested(item->text(0));
+    }
+}
+
+void Sidebar::onPlaylistItemClicked(QListWidgetItem* item) {
+    if (item) {
+        int index = m_playlistList->row(item);
+        emit playlistRequested(index);
+    }
 }

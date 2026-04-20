@@ -15,6 +15,8 @@ StatusBar::StatusBar(AudioEngine* engine, QWidget* parent)
             this, &StatusBar::updateState);
     connect(m_engine, &AudioEngine::currentTrackChanged,
             this, &StatusBar::updateCurrentTrack);
+    connect(m_engine, &AudioEngine::stateChanged,
+            this, [this](PlaybackState) { updatePlayMode(m_engine->playMode()); });
 
     m_playPauseButton->connect(m_playPauseButton, &QPushButton::clicked,
                                this, &StatusBar::onPlayPauseClicked);
@@ -24,6 +26,11 @@ StatusBar::StatusBar(AudioEngine* engine, QWidget* parent)
                           this, &StatusBar::onNextClicked);
     m_volumeSlider->connect(m_volumeSlider, &QSlider::valueChanged,
                             this, &StatusBar::onVolumeChanged);
+    connect(m_seekSlider, &QSlider::sliderReleased,
+            this, [this]() {
+        double pos = (m_seekSlider->value() / 1000.0) * m_engine->duration();
+        m_engine->seek(pos);
+    });
 }
 
 void StatusBar::setupUI() {
@@ -208,4 +215,21 @@ void StatusBar::updateState(PlaybackState state) {
 
 void StatusBar::updateCurrentTrack(const QString& filepath) {
     Q_UNUSED(filepath)
+}
+
+void StatusBar::updatePlayMode(PlayMode mode) {
+    switch (mode) {
+        case PlayMode::Sequential:
+            m_modeLabel->setText("🔁 顺序");
+            break;
+        case PlayMode::LoopSingle:
+            m_modeLabel->setText("🔂 单曲循环");
+            break;
+        case PlayMode::LoopAll:
+            m_modeLabel->setText("🔁 列表循环");
+            break;
+        case PlayMode::Shuffle:
+            m_modeLabel->setText("🔀 随机");
+            break;
+    }
 }

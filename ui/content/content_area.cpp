@@ -77,6 +77,13 @@ void ContentArea::setupUI() {
     m_tabWidget->setTabsClosable(true);
     m_tabWidget->setMovable(true);
 
+    connect(m_tabWidget, &QTabWidget::tabCloseRequested,
+            this, [this](int index) {
+        if (index > 0) {
+            m_tabWidget->removeTab(index);
+        }
+    });
+
     auto* songListPage = new QWidget();
     auto* songListLayout = new QVBoxLayout(songListPage);
     songListLayout->setContentsMargins(0, 0, 0, 0);

@@ -83,7 +83,7 @@ std::vector<size_t> LiveSortAlgorithm::optimizePlaylistOrder(
     return result;
 }
 
-std::vector<size_t> LiveSortAlgorithm::generateEmotionalCurve(size_t length) {
+std::vector<double> LiveSortAlgorithm::generateEmotionalCurve(size_t length) {
     return generateIdealCurve(length);
 }
 

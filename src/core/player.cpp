@@ -1,12 +1,14 @@
 #include "player.h"
 #include "transition/livesort_algorithm.h"
+#include "transition/audio_analyzer.h"
 #include <QRandomGenerator>
 #include <QDebug>
 
 Player::Player(QObject* parent)
     : QObject(parent)
     , m_engine(new AudioEngine(this))
-    , m_currentIndex(-1) {
+    , m_currentIndex(-1)
+    , m_liveSortEnabled(true) {
 
     connect(m_engine, &AudioEngine::aboutToFinish,
             this, &Player::handleAboutToFinish);
@@ -18,7 +20,11 @@ void Player::setPlaylist(const Playlist& playlist) {
     m_playlist = playlist;
     m_currentIndex = -1;
 
-    emit playlistChanged(m_playlist);
+    if (m_liveSortEnabled && m_playlist.songs().size() > 1) {
+        sortByLiveSort();
+    } else {
+        emit playlistChanged(m_playlist);
+    }
 }
 
 void Player::addToQueue(const Song& song) {
@@ -58,13 +64,15 @@ void Player::playSong(const Song& song) {
 }
 
 void Player::playNext() {
-    int nextIndex = getNextIndex();
-
     if (!m_queue.isEmpty()) {
         Song nextSong = m_queue.dequeue();
         playSong(nextSong);
         emit queueUpdated(m_queue.size());
-    } else if (nextIndex >= 0) {
+        return;
+    }
+
+    int nextIndex = getNextIndex();
+    if (nextIndex >= 0) {
         playAt(nextIndex);
     }
 }
@@ -95,6 +103,11 @@ void Player::shufflePlaylist() {
 void Player::sortByLiveSort() {
     auto songs = m_playlist.songs();
 
+    if (songs.size() <= 1) {
+        emit playlistChanged(m_playlist);
+        return;
+    }
+
     std::vector<AudioFeatures> features;
     for (const auto& song : songs) {
         features.push_back(AudioAnalyzer::analyze(song.filepath().toStdString()));
@@ -112,6 +125,15 @@ void Player::sortByLiveSort() {
     );
 
     emit playlistChanged(m_playlist);
+}
+
+void Player::setLiveSortEnabled(bool enabled) {
+    m_liveSortEnabled = enabled;
+    m_engine->enableLiveSortTransition(enabled);
+}
+
+bool Player::isLiveSortEnabled() const {
+    return m_liveSortEnabled;
 }
 
 AudioEngine* Player::engine() const {
@@ -184,7 +206,11 @@ void Player::handleAboutToFinish() {
 }
 
 void Player::handleFinished() {
-    if (m_engine->state() == PlaybackState::Stopped) {
+    if (!m_engine->isLoading()) {
         playNext();
     }
+}
+
+void Player::onLoadCompleted(bool success) {
+    Q_UNUSED(success)
 }

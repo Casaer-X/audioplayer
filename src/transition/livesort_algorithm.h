@@ -26,7 +26,7 @@ public:
         const std::vector<AudioFeatures>& songs,
         TransitionParams params = getDefaultParams());
 
-    static std::vector<size_t> generateEmotionalCurve(size_t length);
+    static std::vector<double> generateEmotionalCurve(size_t length);
 
     static double calculateTransitionScore(const AudioFeatures& from,
                                            const AudioFeatures& to,

@@ -13,6 +13,12 @@ class StatusBar : public QStatusBar {
 public:
     explicit StatusBar(AudioEngine* engine, QWidget* parent = nullptr);
 
+    void updateCurrentTrack(const QString& filepath);
+
+signals:
+    void previousRequested();
+    void nextRequested();
+
 private slots:
     void onPlayPauseClicked();
     void onPreviousClicked();
@@ -21,7 +27,7 @@ private slots:
     void updatePosition(double position);
     void updateDuration(double duration);
     void updateState(PlaybackState state);
-    void updateCurrentTrack(const QString& filepath);
+    void updatePlayMode(PlayMode mode);
 
 private:
     void setupUI();

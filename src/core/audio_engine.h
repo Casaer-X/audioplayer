@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QString>
 #include <QTimer>
+#include <QMediaPlayer>
+#include <QAudioOutput>
 #include <vector>
 #include "compression/lossless_compressor.h"
 #include "transition/livesort_algorithm.h"
@@ -48,6 +50,7 @@ public:
     double duration() const;
     PlaybackState state() const;
     QString currentFile() const;
+    bool isLoading() const;
 
     void enableLiveSortTransition(bool enable);
     void setCrossfadeDuration(double seconds);
@@ -60,12 +63,23 @@ signals:
     void currentTrackChanged(const QString& filepath);
     void aboutToFinish();
     void finished();
+    void loadCompleted(bool success);
+    void errorOccurred(const QString& errorMsg);
 
 private slots:
+    void onMediaPlayerStateChanged(QMediaPlayer::PlaybackState newState);
+    void onMediaPlayerPositionChanged(qint64 position);
+    void onMediaPlayerDurationChanged(qint64 duration);
+    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
+    void onErrorOccurred(QMediaPlayer::Error error, const QString& errorString);
     void updatePosition();
     void handleAboutToFinish();
+    void doPendingPlay();
 
 private:
+    void initializeEngine();
+    void cleanupEngine();
+
     PlaybackState m_state;
     PlayMode m_playMode;
     int m_volume;
@@ -74,6 +88,9 @@ private:
     double m_currentPosition;
     double m_duration;
     QString m_currentFile;
+
+    QMediaPlayer* m_mediaPlayer;
+    QAudioOutput* m_audioOutput;
 
     QTimer* m_positionTimer;
     QTimer* m_crossfadeTimer;
@@ -86,8 +103,8 @@ private:
     std::vector<float> m_fadeInCurve;
     bool m_isCrossfading;
 
-    void initializeEngine();
-    void cleanupEngine();
+    bool m_isLoading;
+    bool m_pendingPlay;
 };
 
 #endif
